@@ -6,6 +6,7 @@ export interface IWorkspace extends Document {
   description?: string;
   ownerId: Types.ObjectId;
   isPersonal: boolean;
+  isDefault: boolean;
   currency: string;
   createdAt: Date;
   updatedAt: Date;

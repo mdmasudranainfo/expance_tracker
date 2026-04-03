@@ -14,7 +14,7 @@ const walletSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["cash", "bank", "mobile"],
+      enum: ["cash", "bank", "mobile Banking", "other"],
       required: true,
     },
     balance: {

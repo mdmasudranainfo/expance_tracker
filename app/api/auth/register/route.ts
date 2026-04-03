@@ -2,14 +2,14 @@ import { connectMongoDB } from "@/src/backend/lib/mongodb"
 import User from "@/src/backend/models/User"
 import { NextRequest, NextResponse } from "next/server"
 import bcrypt from "bcrypt"
+import { Workspace } from "@/src/backend/models"
+import Wallet from "@/src/backend/models/Wallet"
 
 export const POST = async (req: NextRequest) => {
     try {
         await connectMongoDB()
 
-        const data = await req.json()
-
-        console.log(data)
+        const data = await req.json()      
 
         // Validate required fields
         const { name, email, password, image, provider } = data
@@ -49,6 +49,27 @@ export const POST = async (req: NextRequest) => {
 
         // Create user
         const user = await User.create(userData)
+        const workspace = await Workspace.create({
+            name: `Personal Workspace`,
+            description: `This is the default workspace for ${user.name}`,
+            ownerId: user._id,
+            isDefault: true,
+            isPersonal: true,
+            currency: "USD",
+            
+        })
+
+        // Create wallet
+        const wallet = await Wallet.create({
+            name: `Personal Wallet`,
+            description: `This is the default wallet for ${user.name}`,
+            ownerId: user._id,
+            workspaceId: workspace._id,
+            isDefault: true,
+            type: "cash",
+            balance: 0,
+            currency: "USD",
+        })
 
         // Return success response without sensitive data
         return NextResponse.json(

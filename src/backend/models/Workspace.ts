@@ -16,6 +16,10 @@ const workspaceSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    isDefault: {
+      type: Boolean,
+      default: false,
+    },
     isPersonal: {
       type: Boolean,
       default: false,

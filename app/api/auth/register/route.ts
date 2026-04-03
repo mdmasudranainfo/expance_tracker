@@ -13,12 +13,12 @@ export const POST = async (req: NextRequest) => {
         // Validate required fields
         const { name, email, password, image, provider } = data
 
-        // if (!name || !email || !password || !image) {
-        //     return NextResponse.json(
-        //         { error: "Name, email, password, and image are required" },
-        //         { status: 400 }
-        //     )
-        // }
+        if (!name || !email) {
+            return NextResponse.json(
+                { error: "Name and email are required" },
+                { status: 400 }
+            )
+        }
 
         // Check if user with this email already exists
         const existingUser = await User.findOne({ email: email.toLowerCase().trim() })
@@ -35,10 +35,10 @@ export const POST = async (req: NextRequest) => {
             name: name.trim(),
             email: email.toLowerCase().trim(),
             password,
-            image,
+            image: image || "",
             provider: provider || "credentials",
             role: "user",
-            payment_status: false,
+            defaultWorkspaceId: undefined,
         }
 
         // Create user
@@ -55,7 +55,6 @@ export const POST = async (req: NextRequest) => {
                     image: user.image,
                     provider: user.provider,
                     role: user.role,
-                    payment_status: user.payment_status,
                 }
             },
             { status: 201 }

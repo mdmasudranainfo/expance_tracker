@@ -8,6 +8,7 @@ export interface IUser extends Document {
   image?: string;
   provider: "credentials" | "google";
   role: "admin" | "user";
+  defaultWorkspaceId?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -1,6 +1,7 @@
 import { connectMongoDB } from "@/src/backend/lib/mongodb"
 import User from "@/src/backend/models/User"
 import { NextRequest, NextResponse } from "next/server"
+import bcrypt from "bcrypt"
 
 export const POST = async (req: NextRequest) => {
     try {
@@ -12,6 +13,11 @@ export const POST = async (req: NextRequest) => {
 
         // Validate required fields
         const { name, email, password, image, provider } = data
+
+        // hasing the password 
+        const hashedPassword = await bcrypt.hash(password, parseInt(process.env.SALT_ROUND || "10"))
+        console.log(hashedPassword)
+      
 
         if (!name || !email) {
             return NextResponse.json(
@@ -34,7 +40,7 @@ export const POST = async (req: NextRequest) => {
         const userData = {
             name: name.trim(),
             email: email.toLowerCase().trim(),
-            password,
+            password: hashedPassword,
             image: image || "",
             provider: provider || "credentials",
             role: "user",

@@ -1,5 +1,5 @@
 
-import mongoose from "mongoose";
+import mongoose, { mongo } from "mongoose";
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -18,11 +18,7 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    payment_status: {
-      type: Boolean,
-      required: true,
-      default: false,
-    },
+   
     password: {
       type: String,
       required: true,
@@ -31,6 +27,14 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+
+    defaultWorkspaceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Workspace",
+      required: true,
+    },
+
+
     provider: {
       type: String,
       enum: ["credentials", "google"],

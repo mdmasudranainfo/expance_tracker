@@ -8,6 +8,8 @@ import { connectMongoDB } from "@/src/backend/lib/mongodb"
 import { errorResponse, successResponse } from "@/src/backend/utils/Response"
 await connectMongoDB()
 
+import { cookies } from "next/headers"
+
 export const POST = async (req: NextRequest) => {
     try {
         const { email, password } = await req.json()
@@ -16,11 +18,21 @@ export const POST = async (req: NextRequest) => {
         const isPasswordMatch = await bcrypt.compare(password, user.password)
         if (!isPasswordMatch) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
         const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET || "", { expiresIn: "1d" })
+        
+        // 1. Set the cookie using cookies() from next/headers
+        const cookieStore = await cookies();
+        cookieStore.set("auth_token", token, { 
+            httpOnly: true, 
+            secure: process.env.NODE_ENV === "production", 
+            maxAge: 86400, // 1 day in seconds
+            path: "/" 
+        });
+
         return successResponse({
-            token,
+            auth_token: token,
             user,
         })
-    }catch (error) {
+    } catch (error) {
         if (error instanceof Error) {
             return errorResponse({ message: error.message }, 500);
         }

@@ -7,6 +7,7 @@ export interface ApiResponse<T = unknown> {
   status: "success" | "error";
   code: number;
   data: T;
+  message?: string;
 }
 
 /**
@@ -14,12 +15,15 @@ export interface ApiResponse<T = unknown> {
  */
 export const successResponse = <T>(
   data: T,
-  code: number = 200
+  code: number = 200,
+  message?: string
 ) => {
   const response: ApiResponse<T> = {
     status: "success",
+    message: message || "Success",
     code,
     data,
+
   };
 
   return NextResponse.json(response, { status: code });
@@ -30,10 +34,12 @@ export const successResponse = <T>(
  */
 export const errorResponse = <T>(
   data: T,
-  code: number = 500
+  code: number = 500,
+  message?: string
 ) => {
   const response: ApiResponse<T> = {
     status: "error",
+    message: message || "Error",
     code,
     data,
   };

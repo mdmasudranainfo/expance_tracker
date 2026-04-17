@@ -87,7 +87,6 @@ export async function GET(req: NextRequest) {
     const userId = getUserId(req);
     if (!userId) return errorResponse(null, 401, "Unauthorized");
 
-    // Find the user's default workspace
     const workspace = await Workspace.findOne({
       ownerId: userId,
       isDefault: true,
@@ -102,14 +101,24 @@ export async function GET(req: NextRequest) {
 
     const workspaceId = workspace._id.toString();
 
-    // Build query
     const url = new URL(req.url);
     const query: any = { workspaceId, userId };
 
-    // Optional filtering
+    // ─── Type Filter (expense | income) ───────────────────────────────
     const type = url.searchParams.get("type");
-    if (type) query.type = type;
+    const VALID_TYPES = ["expense", "income", "transfer"];
+    if (type) {
+      if (!VALID_TYPES.includes(type)) {
+        return errorResponse(
+          null,
+          400,
+          `Invalid type. Must be one of: ${VALID_TYPES.join(", ")}`,
+        );
+      }
+      query.type = type;
+    }
 
+    // ─── Wallet Filter ─────────────────────────────────────────────────
     const walletId = url.searchParams.get("walletId");
     if (walletId) {
       query.$or = [
@@ -119,24 +128,73 @@ export async function GET(req: NextRequest) {
       ];
     }
 
-    const categoryId = url.searchParams.get("categoryId");
-    if (categoryId) query.categoryId = categoryId;
+    // ─── Category Filter ───────────────────────────────────────────────
+    // Single: ?categoryId=abc
+    // Multiple: ?categoryId=abc,def,ghi
+    const categoryParam = url.searchParams.get("categoryId");
+    if (categoryParam) {
+      const categoryIds = categoryParam
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean);
 
-    // Optional date range filtering
+      query.categoryId =
+        categoryIds.length === 1 ? categoryIds[0] : { $in: categoryIds };
+    }
+
+    // ─── Date Range Filter ─────────────────────────────────────────────
     const from = url.searchParams.get("from");
     const to = url.searchParams.get("to");
     if (from || to) {
       query.date = {};
       if (from) query.date.$gte = new Date(from);
-      if (to) query.date.$lte = new Date(to);
+      if (to) {
+        // Include the entire "to" day (up to 23:59:59)
+        const toDate = new Date(to);
+        toDate.setHours(23, 59, 59, 999);
+        query.date.$lte = toDate;
+      }
     }
 
-    const transactions = await Transaction.find(query)
-      .sort({ date: -1, createdAt: -1 })
-      .populate("walletId categoryId fromWalletId toWalletId");
+    // ─── Pagination ────────────────────────────────────────────────────
+    const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(url.searchParams.get("limit") || "20", 10)),
+    );
+    const skip = (page - 1) * limit;
+
+    const [transactions, totalCount] = await Promise.all([
+      Transaction.find(query)
+        .sort({ date: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate("walletId categoryId fromWalletId toWalletId"),
+      Transaction.countDocuments(query),
+    ]);
+
+    const totalPages = Math.ceil(totalCount / limit);
 
     return successResponse(
-      transactions,
+      {
+        transactions,
+        pagination: {
+          page,
+          limit,
+          totalCount,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1,
+        },
+        // Echo back active filters for client convenience
+        filters: {
+          type: type || null,
+          categoryId: categoryParam || null,
+          walletId: walletId || null,
+          from: from || null,
+          to: to || null,
+        },
+      },
       200,
       "Transactions fetched successfully",
     );

@@ -129,8 +129,6 @@ export async function GET(req: NextRequest) {
     }
 
     // ─── Category Filter ───────────────────────────────────────────────
-    // Single: ?categoryId=abc
-    // Multiple: ?categoryId=abc,def,ghi
     const categoryParam = url.searchParams.get("categoryId");
     if (categoryParam) {
       const categoryIds = categoryParam
@@ -143,14 +141,13 @@ export async function GET(req: NextRequest) {
     }
 
     // ─── Date Range Filter ─────────────────────────────────────────────
-    const from = url.searchParams.get("from");
-    const to = url.searchParams.get("to");
-    if (from || to) {
+    const startDate = url.searchParams.get("start_date");
+    const endDate = url.searchParams.get("end_date");
+    if (startDate || endDate) {
       query.date = {};
-      if (from) query.date.$gte = new Date(from);
-      if (to) {
-        // Include the entire "to" day (up to 23:59:59)
-        const toDate = new Date(to);
+      if (startDate) query.date.$gte = new Date(startDate);
+      if (endDate) {
+        const toDate = new Date(endDate);
         toDate.setHours(23, 59, 59, 999);
         query.date.$lte = toDate;
       }
@@ -186,13 +183,12 @@ export async function GET(req: NextRequest) {
           hasNextPage: page < totalPages,
           hasPrevPage: page > 1,
         },
-        // Echo back active filters for client convenience
         filters: {
           type: type || null,
           categoryId: categoryParam || null,
           walletId: walletId || null,
-          from: from || null,
-          to: to || null,
+          start_date: startDate || null,
+          end_date: endDate || null,
         },
       },
       200,

@@ -26,7 +26,7 @@ export async function middleware(req: NextRequest) {
       // for backend
       return NextResponse.json(
         { status: "fail", data: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     } else {
       // for frontend
@@ -37,5 +37,12 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   // where middleware path is defined
-  matcher: ["/api/workspace/:path*", "/api/workspace", "/api/wallet/:path*", "/api/category/:path*", "/api/transactions/:path*"],
+  matcher: [
+    "/api/workspace/:path*",
+    "/api/workspace",
+    "/api/wallet/:path*",
+    "/api/category/:path*",
+    "/api/transactions/:path*",
+    "/api/overview/:path*",
+  ],
 };

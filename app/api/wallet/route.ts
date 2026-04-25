@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
       );
 
     const wallets = await Wallet.find({ workspaceId: workspaceId1 }).sort({
-      createdAt: -1,
+      createdAt: 1,
     });
 
     return successResponse(wallets, 200, "Wallets fetched successfully");

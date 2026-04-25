@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
     const query: any = { workspaceId };
     if (type) query.type = type;
 
-    const categories = await Category.find(query).sort({ createdAt: -1 });
+    const categories = await Category.find(query).sort({ createdAt: 1 });
 
     return successResponse(categories, 200, "Categories fetched successfully");
   } catch (error: any) {

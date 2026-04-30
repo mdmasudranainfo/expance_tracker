@@ -2,7 +2,7 @@ import { connectMongoDB } from "@/src/backend/lib/mongodb";
 import User from "@/src/backend/models/User";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
-import { Workspace } from "@/src/backend/models";
+import { Category, Workspace } from "@/src/backend/models";
 import Wallet from "@/src/backend/models/Wallet";
 
 export const POST = async (req: NextRequest) => {
@@ -19,7 +19,6 @@ export const POST = async (req: NextRequest) => {
       password,
       parseInt(process.env.SALT_ROUND || "10"),
     );
-    console.log(hashedPassword);
 
     if (!name || !email) {
       return NextResponse.json(
@@ -73,6 +72,22 @@ export const POST = async (req: NextRequest) => {
       balance: 0,
       currency: "USD",
     });
+
+    // create default some category
+    const defaultCategories = [
+      { name: "Food", type: "expense" },
+      { name: "Transport", type: "expense" },
+      { name: "Entertainment", type: "expense" },
+      { name: "Salary", type: "income" },
+      { name: "Freelance", type: "income" },
+    ];
+    const Categories = await Category.insertMany(
+      defaultCategories.map((cat) => ({
+        ...cat,
+        ownerId: user._id,
+        workspaceId: workspace._id,
+      })),
+    );
 
     // Return success response without sensitive data
     return NextResponse.json(

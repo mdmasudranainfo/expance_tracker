@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { normalizeCurrency } from "./currency";
 
 /**
  * Check if a string is a valid MongoDB ObjectId
@@ -62,10 +63,14 @@ export function getMonthDateRange(month: number, year: number): { start: Date; e
 /**
  * Format currency amount
  */
-export function formatAmount(amount: number, currency: string = "BDT"): string {
+export function formatAmount(
+  amount: number,
+  currency: string | { code?: string; symbol?: string; name?: string } = "BDT",
+): string {
+  const normalized = normalizeCurrency(currency);
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: currency,
+    currency: normalized.code,
   }).format(amount);
 }
 

@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       name,
       type,
       balance: balance || 0,
-      currency: currency || workspace.currency, // fallback to workspace currency
+      currency: currency || workspace.currency?.code || "USD", // fallback to workspace currency
     });
 
     return successResponse(newWallet, 201, "Wallet created successfully");

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { defaultCurrency } from "../utils/currency";
 
 const workspaceSchema = new mongoose.Schema(
   {
@@ -25,9 +26,21 @@ const workspaceSchema = new mongoose.Schema(
       default: false,
     },
     currency: {
-      type: String,
-      required: true,
-      default: "BDT",
+      code: {
+        type: String,
+        required: true,
+        default: defaultCurrency.code,
+      },
+      symbol: {
+        type: String,
+        required: true,
+        default: defaultCurrency.symbol,
+      },
+      name: {
+        type: String,
+        required: true,
+        default: defaultCurrency.name,
+      },
     },
   },
   {

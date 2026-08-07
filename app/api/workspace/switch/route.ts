@@ -3,6 +3,7 @@ import { errorResponse, successResponse } from "@/src/backend/utils/Response";
 import { NextRequest } from "next/server";
 import mongoose from "mongoose";
 import { connectMongoDB } from "@/src/backend/lib/mongodb";
+import { normalizeCurrency } from "@/src/backend/utils/currency";
 
 const getUserId = (req: NextRequest) => req.headers.get("id");
 
@@ -31,7 +32,12 @@ export async function POST(req: NextRequest) {
     );
 
     return successResponse(
-      { workspace: updatedWorkspace },
+      {
+        workspace: {
+          ...updatedWorkspace?.toObject(),
+          currency: normalizeCurrency(updatedWorkspace?.currency),
+        },
+      },
       200,
       "Workspace switched successfully",
     );

@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { Category, Workspace } from "@/src/backend/models";
 import Wallet from "@/src/backend/models/Wallet";
+import { getCurrencyByCode } from "@/src/backend/utils/currency";
 
 export const POST = async (req: NextRequest) => {
   try {
@@ -12,7 +13,7 @@ export const POST = async (req: NextRequest) => {
     const data = await req.json();
 
     // Validate required fields
-    const { name, email, password, image, provider } = data;
+    const { name, email, password, image, provider, currencyCode } = data;
 
     // hasing the password
     const hashedPassword = await bcrypt.hash(
@@ -52,14 +53,18 @@ export const POST = async (req: NextRequest) => {
 
     // Create user
     const user = await User.create(userData);
+    const currency = getCurrencyByCode(currencyCode);
     const workspace = await Workspace.create({
       name: `Personal Workspace`,
       description: `This is the default workspace for ${user.name}`,
       ownerId: user._id,
       isDefault: true,
       isPersonal: true,
-      currency: "BDT",
+      currency,
     });
+
+    user.defaultWorkspaceId = workspace._id;
+    await user.save();
 
     // Create wallet
     const wallet = await Wallet.create({
@@ -70,7 +75,7 @@ export const POST = async (req: NextRequest) => {
       isDefault: true,
       type: "cash",
       balance: 0,
-      currency: "USD",
+      currency: currency.code,
     });
 
     // create default some category
@@ -100,6 +105,7 @@ export const POST = async (req: NextRequest) => {
           image: user.image,
           provider: user.provider,
           role: user.role,
+          defaultWorkspaceId: user.defaultWorkspaceId,
         },
       },
       { status: 201 },

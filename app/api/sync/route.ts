@@ -177,7 +177,7 @@ async function processOperation(
         name: payload.name,
         type: payload.type,
         balance: payload.balance ?? 0,
-        currency: payload.currency || workspace.currency,
+        currency: payload.currency || workspace.currency?.code || "USD",
       });
       if (localReference) idMap[String(localReference)] = wallet._id.toString();
       return {
@@ -238,7 +238,7 @@ async function processOperation(
         name: payload.name,
         type: payload.type,
         isDefault: payload.isDefault ?? false,
-        currency: payload.currency || workspace.currency,
+        currency: payload.currency || workspace.currency?.code || "USD",
       });
       if (localReference) idMap[String(localReference)] = category._id.toString();
       return {

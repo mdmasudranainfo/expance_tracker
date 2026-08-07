@@ -39,6 +39,7 @@ export const config = {
   // where middleware path is defined
   matcher: [
     "/api/workspace/:path*",
+    "/api/workspaces/:path*",
     "/api/workspace/switch/:path*",
     "/api/wallet/:path*",
     "/api/category/:path*",

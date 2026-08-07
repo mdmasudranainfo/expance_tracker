@@ -3,11 +3,11 @@ import { VerifyToken } from "./src/backend/utils/JWTtokenHelper";
 
 export async function middleware(req: NextRequest) {
   try {
-    let token = req.cookies.get("auth_token");
+    const token = req.cookies.get("auth_token");
     if (!token) {
       throw new Error("No token found");
     }
-    let payload: any = await VerifyToken(token["value"]);
+    const payload: any = await VerifyToken(token["value"]);
 
     const requestHeader = new Headers(req.headers);
     // Adapting the fields as per the user's snippet, though the schema may differ slightly
@@ -21,7 +21,7 @@ export async function middleware(req: NextRequest) {
         headers: requestHeader,
       },
     });
-  } catch (e) {
+  } catch {
     if (req.nextUrl.pathname.startsWith("/api/")) {
       // for backend
       return NextResponse.json(
@@ -43,6 +43,7 @@ export const config = {
     "/api/wallet/:path*",
     "/api/category/:path*",
     "/api/transactions/:path*",
+    "/api/sync",
     "/api/overview/:path*",
   ],
 };

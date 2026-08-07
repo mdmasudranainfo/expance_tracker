@@ -12,7 +12,7 @@ if (!globalForMongoose.mongoose) {
   globalForMongoose.mongoose = { conn: null, promise: null };
 }
 
-let cached = globalForMongoose.mongoose;
+const cached = globalForMongoose.mongoose;
 
 export async function connectMongoDB() {
   if (cached.conn) {

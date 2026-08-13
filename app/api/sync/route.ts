@@ -52,6 +52,7 @@ const rewriteIds = (payload: Record<string, any>, idMap: Record<string, string>)
 
 const sanitizePayload = (payload: Record<string, any> = {}) => {
   const next = { ...payload };
+  delete next._id;
   delete next.clientId;
   delete next.localId;
   delete next.serverId;
@@ -287,9 +288,30 @@ async function processOperation(
     if (operation.action === "create") {
       if (!payload.workspaceId) throw new Error("Workspace ID is required");
       await ensureWorkspaceOwnership(String(payload.workspaceId), userId);
+
+      if (localReference) {
+        const existingTransaction = await Transaction.findOne({
+          userId,
+          clientId: String(localReference),
+        });
+
+        if (existingTransaction) {
+          idMap[String(localReference)] = existingTransaction._id.toString();
+          return {
+            clientId: localReference,
+            serverId: existingTransaction._id.toString(),
+            entity: operation.entity,
+            action: operation.action,
+            status: "synced",
+            data: existingTransaction,
+          };
+        }
+      }
+
       const transaction = await Transaction.create({
         ...payload,
         userId,
+        clientId: localReference ? String(localReference) : undefined,
       });
       await applyTransactionToWallets(transaction);
       if (localReference) idMap[String(localReference)] = transaction._id.toString();
@@ -299,6 +321,7 @@ async function processOperation(
         entity: operation.entity,
         action: operation.action,
         status: "synced",
+        data: transaction,
       };
     }
 

@@ -49,6 +49,9 @@ const transactionSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    clientId: {
+      type: String,
+    },
     // Transfer support
     fromWalletId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -70,6 +73,10 @@ transactionSchema.index({ walletId: 1 });
 transactionSchema.index({ categoryId: 1 });
 transactionSchema.index({ type: 1 });
 transactionSchema.index({ date: 1 });
+transactionSchema.index(
+  { userId: 1, clientId: 1 },
+  { unique: true, partialFilterExpression: { clientId: { $exists: true, $type: "string" } } },
+);
 
 const Transaction = mongoose.models.Transaction || mongoose.model("Transaction", transactionSchema);
 

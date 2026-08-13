@@ -11,6 +11,7 @@ export interface ITransaction extends Document {
   note?: string;
   date: Date;
   receiptUrl?: string;
+  clientId?: string;
   fromWalletId?: Types.ObjectId;
   toWalletId?: Types.ObjectId;
   createdAt: Date;

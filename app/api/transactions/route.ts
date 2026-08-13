@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     if (!userId) return errorResponse(null, 401, "Unauthorized");
 
     const body = await req.json();
-    const { workspaceId, type, amount } = body;
+    const { workspaceId, type, amount, clientId } = body;
 
     if (!workspaceId)
       return errorResponse(null, 400, "Workspace ID is required");
@@ -56,10 +56,26 @@ export async function POST(req: NextRequest) {
         "Forbidden: Workspace not found or you don't have access",
       );
 
+    if (clientId) {
+      const existingTransaction = await Transaction.findOne({
+        userId,
+        clientId: String(clientId),
+      });
+
+      if (existingTransaction) {
+        return successResponse(
+          existingTransaction,
+          200,
+          "Transaction already synced",
+        );
+      }
+    }
+
     const newTransaction = await Transaction.create({
       ...body,
       workspaceId,
       userId,
+      clientId: clientId ? String(clientId) : undefined,
     });
 
     // Update Wallet Balance

@@ -6,12 +6,13 @@ import jwt from "jsonwebtoken"
 import { NextResponse } from "next/server"
 import { connectMongoDB } from "@/src/backend/lib/mongodb"
 import { errorResponse, successResponse } from "@/src/backend/utils/Response"
-await connectMongoDB()
 
 import { cookies } from "next/headers"
 
 export const POST = async (req: NextRequest) => {
     try {
+        await connectMongoDB()
+
         const { email, password } = await req.json()
         const user = await User.findOne({ email }).select("+password")
         if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })

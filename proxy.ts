@@ -1,20 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { VerifyToken } from "./src/backend/utils/JWTtokenHelper";
 
-export async function middleware(req: NextRequest) {
+type AuthPayload = {
+  phone?: string;
+  id?: string;
+  role?: string;
+  email?: string;
+};
+
+export async function proxy(req: NextRequest) {
   try {
     const token = req.cookies.get("auth_token");
     if (!token) {
       throw new Error("No token found");
     }
-    const payload: any = await VerifyToken(token["value"]);
+    const payload = (await VerifyToken(token.value)) as AuthPayload;
 
     const requestHeader = new Headers(req.headers);
-    // Adapting the fields as per the user's snippet, though the schema may differ slightly
-    if (payload["phone"]) requestHeader.set("phone", payload["phone"]);
-    if (payload["id"]) requestHeader.set("id", payload["id"]);
-    if (payload["role"]) requestHeader.set("role", payload["role"]);
-    if (payload["email"]) requestHeader.set("email", payload["email"]); // Add email since it's used in login route
+    if (payload.phone) requestHeader.set("phone", payload.phone);
+    if (payload.id) requestHeader.set("id", payload.id);
+    if (payload.role) requestHeader.set("role", payload.role);
+    if (payload.email) requestHeader.set("email", payload.email);
 
     return NextResponse.next({
       request: {
@@ -23,20 +29,17 @@ export async function middleware(req: NextRequest) {
     });
   } catch {
     if (req.nextUrl.pathname.startsWith("/api/")) {
-      // for backend
       return NextResponse.json(
         { status: "fail", data: "Unauthorized" },
         { status: 401 },
       );
-    } else {
-      // for frontend
-      return NextResponse.redirect(new URL("/login", req.url));
     }
+
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 }
 
 export const config = {
-  // where middleware path is defined
   matcher: [
     "/api/workspace/:path*",
     "/api/workspaces/:path*",

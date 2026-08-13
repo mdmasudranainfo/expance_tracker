@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 
-// Global connection variable to prevent multiple connections in development
 const globalForMongoose = global as unknown as {
   mongoose: {
     conn: typeof mongoose | null;
@@ -21,21 +20,31 @@ export async function connectMongoDB() {
 
   if (!cached.promise) {
     const opts = {
-      bufferCommands: false, // Disable mongoose buffering
-      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of default 30s
-      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+      bufferCommands: false,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
     };
 
     if (!process.env.MONGODB_URI) {
+      console.error('Database not connected: MONGODB_URI environment variable is missing');
       throw new Error('Please define the MONGODB_URI environment variable');
     }
 
-    cached.promise = mongoose.connect(process.env.MONGODB_URI, opts).then((mongoose) => {
-      console.log("✅ MongoDB Connected");
-      return mongoose;
-    }).catch((error) => {
-      throw error;
-    });
+    cached.promise = mongoose
+      .connect(process.env.MONGODB_URI, opts)
+      .then((mongooseInstance) => {
+        console.log('Database connected successfully');
+        return mongooseInstance;
+      })
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : 'Unknown MongoDB connection error';
+        const code =
+          typeof error === 'object' && error !== null && 'code' in error
+            ? ` (${String(error.code)})`
+            : '';
+        console.error(`Database not connected${code}: ${message}`);
+        throw error;
+      });
   }
 
   try {
@@ -53,13 +62,10 @@ export async function disconnectMongoDB() {
     await mongoose.disconnect();
     cached.conn = null;
     cached.promise = null;
-    console.log(' MongoDB disconnected');
+    console.log('Database disconnected');
   }
 }
 
-
-
-// Handle application termination
 process.on('SIGINT', async () => {
   await disconnectMongoDB();
   process.exit(0);

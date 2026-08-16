@@ -3,7 +3,7 @@ import { connectMongoDB } from "@/src/backend/lib/mongodb";
 import { errorResponse, successResponse } from "@/src/backend/utils/Response";
 import Transaction from "@/src/backend/models/Transaction";
 import Workspace from "@/src/backend/models/Workspace";
-import Wallet from "@/src/backend/models/Wallet";
+import { applyTransactionToWallets, reverseTransactionFromWallets } from "@/src/backend/utils/transactions";
 
 const getUserId = (req: NextRequest) => req.headers.get("id");
 
@@ -16,34 +16,6 @@ async function verifyTransactionOwnership(transactionId: string, userId: string)
     if (!workspace) return { error: "Forbidden: You don't have access to this transaction's workspace", status: 403 };
 
     return { transaction };
-}
-
-// Internal Helper function to reverse old balance adjustments
-async function reverseTransactionFromWallets(transaction: any) {
-    const amount = Number(transaction.amount);
-    
-    if (transaction.type === "expense") {
-        await Wallet.findByIdAndUpdate(transaction.walletId, { $inc: { balance: amount } });
-    } else if (transaction.type === "income") {
-        await Wallet.findByIdAndUpdate(transaction.walletId, { $inc: { balance: -amount } });
-    } else if (transaction.type === "transfer") {
-        await Wallet.findByIdAndUpdate(transaction.fromWalletId, { $inc: { balance: amount } });
-        await Wallet.findByIdAndUpdate(transaction.toWalletId, { $inc: { balance: -amount } });
-    }
-}
-
-// Internal Helper function to apply new balance adjustments
-async function applyTransactionToWallets(transaction: any) {
-    const amount = Number(transaction.amount);
-    
-    if (transaction.type === "expense") {
-        await Wallet.findByIdAndUpdate(transaction.walletId, { $inc: { balance: -amount } });
-    } else if (transaction.type === "income") {
-        await Wallet.findByIdAndUpdate(transaction.walletId, { $inc: { balance: amount } });
-    } else if (transaction.type === "transfer") {
-        await Wallet.findByIdAndUpdate(transaction.fromWalletId, { $inc: { balance: -amount } });
-        await Wallet.findByIdAndUpdate(transaction.toWalletId, { $inc: { balance: amount } });
-    }
 }
 
 // 1. GET single transaction by ID

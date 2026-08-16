@@ -5,6 +5,7 @@ import Category from "@/src/backend/models/Category";
 import Transaction from "@/src/backend/models/Transaction";
 import Wallet from "@/src/backend/models/Wallet";
 import Workspace from "@/src/backend/models/Workspace";
+import { applyTransactionToWallets, reverseTransactionFromWallets } from "@/src/backend/utils/transactions";
 
 type SyncAction = "create" | "update" | "delete";
 type SyncEntity = "workspace" | "wallet" | "category" | "transaction";
@@ -68,48 +69,6 @@ async function ensureWorkspaceOwnership(workspaceId: string, userId: string) {
     throw new Error("Forbidden: Workspace not found or you don't have access");
   }
   return workspace;
-}
-
-async function applyTransactionToWallets(transaction: any) {
-  const amount = Number(transaction.amount);
-
-  if (transaction.type === "expense") {
-    await Wallet.findByIdAndUpdate(transaction.walletId, {
-      $inc: { balance: -amount },
-    });
-  } else if (transaction.type === "income") {
-    await Wallet.findByIdAndUpdate(transaction.walletId, {
-      $inc: { balance: amount },
-    });
-  } else if (transaction.type === "transfer") {
-    await Wallet.findByIdAndUpdate(transaction.fromWalletId, {
-      $inc: { balance: -amount },
-    });
-    await Wallet.findByIdAndUpdate(transaction.toWalletId, {
-      $inc: { balance: amount },
-    });
-  }
-}
-
-async function reverseTransactionFromWallets(transaction: any) {
-  const amount = Number(transaction.amount);
-
-  if (transaction.type === "expense") {
-    await Wallet.findByIdAndUpdate(transaction.walletId, {
-      $inc: { balance: amount },
-    });
-  } else if (transaction.type === "income") {
-    await Wallet.findByIdAndUpdate(transaction.walletId, {
-      $inc: { balance: -amount },
-    });
-  } else if (transaction.type === "transfer") {
-    await Wallet.findByIdAndUpdate(transaction.fromWalletId, {
-      $inc: { balance: amount },
-    });
-    await Wallet.findByIdAndUpdate(transaction.toWalletId, {
-      $inc: { balance: -amount },
-    });
-  }
 }
 
 async function processOperation(

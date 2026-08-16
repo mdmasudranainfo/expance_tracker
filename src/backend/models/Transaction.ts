@@ -23,12 +23,12 @@ const transactionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
       required: function() {
-        return this.type !== "transfer";
+        return ["expense", "income"].includes(this.type);
       },
     },
     type: {
       type: String,
-      enum: ["expense", "income", "transfer"],
+      enum: ["expense", "income", "transfer", "loan_received", "loan_given", "loan_payment", "loan_received_back"],
       required: true,
     },
     amount: {
@@ -60,6 +60,19 @@ const transactionSchema = new mongoose.Schema(
     toWalletId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Wallet",
+    },
+    loanId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Loan",
+    },
+    loanPaymentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "LoanPayment",
+    },
+    personName: {
+      type: String,
+      trim: true,
+      default: "",
     },
   },
   {

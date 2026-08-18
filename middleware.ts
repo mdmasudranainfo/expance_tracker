@@ -8,7 +8,7 @@ type AuthPayload = {
   email?: string;
 };
 
-export async function proxy(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   try {
     const token = req.cookies.get("auth_token");
     if (!token) {
@@ -49,5 +49,7 @@ export const config = {
     "/api/transactions/:path*",
     "/api/sync",
     "/api/overview/:path*",
+    "/api/tasks/:path*",
+    "/api/loans/:path*",
   ],
 };

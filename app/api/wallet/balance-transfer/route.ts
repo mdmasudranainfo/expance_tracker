@@ -30,13 +30,14 @@ export async function POST(req: NextRequest) {
       workspaceId,
       fromWalletId,
       toWalletId,
-      amount,
+      amount: rawAmount,
       transferFee: feeInput,
       transferCharge: chargeInput,
       note = "",
     } = body;
 
-    const transferFee = feeInput ?? chargeInput ?? 0;
+    const amount = Number(rawAmount);
+    const transferFee = Number(chargeInput ?? feeInput ?? 0);
 
     // Validate required fields
     if (!workspaceId)
@@ -45,9 +46,9 @@ export async function POST(req: NextRequest) {
       return errorResponse(null, 400, "Source wallet ID is required");
     if (!toWalletId)
       return errorResponse(null, 400, "Destination wallet ID is required");
-    if (!amount || amount <= 0)
+    if (isNaN(amount) || amount <= 0)
       return errorResponse(null, 400, "Amount must be greater than 0");
-    if (transferFee < 0)
+    if (isNaN(transferFee) || transferFee < 0)
       return errorResponse(null, 400, "Transfer charge cannot be negative");
     if (fromWalletId === toWalletId)
       return errorResponse(null, 400, "Cannot transfer to the same wallet");
@@ -87,49 +88,68 @@ export async function POST(req: NextRequest) {
         `Insufficient balance. Available: ${fromWallet.balance}, Required: ${totalDeduction}`,
       );
 
-    // Step 1: Deduct from source wallet
+    // Step 1: Deduct from source wallet (transferred amount + transfer charge)
     await Wallet.findByIdAndUpdate(fromWalletId, {
       $inc: { balance: -amount - transferFee },
     });
 
-    // Step 2: Add to destination wallet
+    // Step 2: Add to destination wallet (only transferred amount)
     await Wallet.findByIdAndUpdate(toWalletId, {
       $inc: { balance: amount },
     });
 
-    // Step 3: Find or create "transfer" category
-    let transferCategory = await Category.findOne({
+    // Step 3: Create main transfer transaction record
+    const transferTransaction = await Transaction.create({
       workspaceId,
-      name: "transfer",
+      userId,
+      type: "transfer",
+      amount,
+      fromWalletId,
+      toWalletId,
+      note: note || `${fromWallet.name} to ${toWallet.name}`,
+      date: new Date(),
     });
 
-    if (!transferCategory) {
-      transferCategory = await Category.create({
+    // Step 4: Find or create "Transfer Charge" category if fee exists
+    let chargeTransaction = null;
+    if (transferFee > 0) {
+      let transferCategory = await Category.findOne({
         workspaceId,
-        name: "transfer",
+        name: { $regex: /^(transfer charge|transfer fee|transfer)$/i },
         type: "expense",
       });
-    }
 
-    if (transferFee) {
-      // Step 4: Create main transfer transaction
-      await Transaction.create({
+      if (!transferCategory) {
+        transferCategory = await Category.create({
+          workspaceId,
+          name: "Transfer Charge",
+          type: "expense",
+        });
+      }
+
+      const chargeNote = note
+        ? `Transfer Charge: ${note}`
+        : `Transfer charge (${fromWallet.name} to ${toWallet.name})`;
+
+      chargeTransaction = await Transaction.create({
         workspaceId,
         userId,
         type: "expense",
         amount: transferFee,
-        note: note || `${fromWallet.name} to ${toWallet.name}`,
+        note: chargeNote,
         walletId: fromWalletId,
         categoryId: transferCategory._id,
         date: new Date(),
       });
     }
 
-    // costTransaction,
     return successResponse(
       {
         totalDeducted: totalDeduction,
         totalReceived: amount,
+        transferCharge: transferFee,
+        transfer: transferTransaction,
+        chargeTransaction: chargeTransaction,
       },
       201,
       "Balance transfer completed successfully",
@@ -139,6 +159,79 @@ export async function POST(req: NextRequest) {
       null,
       500,
       error.message || "Failed to transfer balance",
+    );
+  }
+}
+
+/**
+ * GET: Fetch balance transfer records
+ */
+export async function GET(req: NextRequest) {
+  try {
+    await connectMongoDB();
+    const userId = getUserId(req);
+    if (!userId) return errorResponse(null, 401, "Unauthorized");
+
+    const url = new URL(req.url);
+    const workspaceId = url.searchParams.get("workspaceId");
+
+    let targetWorkspaceId = workspaceId;
+    if (!targetWorkspaceId) {
+      const defaultWorkspace = await Workspace.findOne({
+        ownerId: userId,
+        isDefault: true,
+      });
+      if (defaultWorkspace) {
+        targetWorkspaceId = defaultWorkspace._id.toString();
+      }
+    }
+
+    const query: any = {
+      userId,
+      type: "transfer",
+    };
+    if (targetWorkspaceId) {
+      query.workspaceId = targetWorkspaceId;
+    }
+
+    const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(url.searchParams.get("limit") || "20", 10)),
+    );
+    const skip = (page - 1) * limit;
+
+    const [transfers, totalCount] = await Promise.all([
+      Transaction.find(query)
+        .sort({ date: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate("fromWalletId toWalletId"),
+      Transaction.countDocuments(query),
+    ]);
+
+    const totalPages = Math.ceil(totalCount / limit);
+
+    return successResponse(
+      {
+        transfers,
+        pagination: {
+          page,
+          limit,
+          totalCount,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1,
+        },
+      },
+      200,
+      "Balance transfers fetched successfully",
+    );
+  } catch (error: any) {
+    return errorResponse(
+      null,
+      500,
+      error.message || "Failed to fetch balance transfers",
     );
   }
 }

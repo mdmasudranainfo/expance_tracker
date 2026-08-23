@@ -31,9 +31,12 @@ export async function POST(req: NextRequest) {
       fromWalletId,
       toWalletId,
       amount,
-      transferFee = 0,
+      transferFee: feeInput,
+      transferCharge: chargeInput,
       note = "",
     } = body;
+
+    const transferFee = feeInput ?? chargeInput ?? 0;
 
     // Validate required fields
     if (!workspaceId)
@@ -45,7 +48,7 @@ export async function POST(req: NextRequest) {
     if (!amount || amount <= 0)
       return errorResponse(null, 400, "Amount must be greater than 0");
     if (transferFee < 0)
-      return errorResponse(null, 400, "Transfer fee cannot be negative");
+      return errorResponse(null, 400, "Transfer charge cannot be negative");
     if (fromWalletId === toWalletId)
       return errorResponse(null, 400, "Cannot transfer to the same wallet");
 

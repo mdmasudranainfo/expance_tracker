@@ -49,7 +49,6 @@ export const config = {
     "/api/transactions/:path*",
     "/api/sync",
     "/api/overview/:path*",
-    "/api/tasks/:path*",
     "/api/loans/:path*",
   ],
 };
